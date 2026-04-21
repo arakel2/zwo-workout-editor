@@ -38,6 +38,12 @@
       padding: 0;
     }
 
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: var(--bg);
@@ -58,6 +64,9 @@
     }
 
     .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
       max-width: 1200px;
       margin: 0 auto;
     }
@@ -80,17 +89,22 @@
 
     /* ---- Layout ---- */
     .columns {
+      flex: 1;
+      min-height: 0;
       display: flex;
       gap: 1rem;
-      flex-wrap: wrap;
     }
 
     .col-meta {
       flex: 0 0 280px;
+      overflow-y: auto;
     }
 
     .col-segments {
       flex: 1 1 500px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     /* ---- Forms ---- */
@@ -123,13 +137,14 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 0.8rem;
-      margin-bottom: 0.8rem;
+      margin-bottom: 1.8rem;
     }
 
     /* ---- Segment list (scrollable) ---- */
     .col-segments .card {
-      max-height: calc(100vh - 500px);
+      flex: 1;
       overflow-y: auto;
+      min-height: 0;
     }
 
     .seg-item {
@@ -326,14 +341,68 @@
     }
 
 
+    /* ---- Mobile toggle button ---- */
+    .meta-toggle {
+      display: none;
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    /* ---- Mobile Layout ---- */
     @media (max-width: 700px) {
+
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        height: auto;
+      }
+
       .columns {
         flex-direction: column;
       }
 
+      /* Segments after Chart, Meta later */
+      .col-segments {
+        order: 1;
+        max-height: 50vh;
+      }
+
       .col-meta {
+        order: 2;
         flex: 1 1 auto;
       }
+
+      /* Height for segments on mobiles */
+      .col-segments .card {
+        max-height: 50vh;
+        flex: none;
+      }
+
+      /* Show Toggle-Button */
+      .meta-toggle {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Collapes Mechanism */
+      .col-meta.collapsed .card {
+        display: none;
+      }
+
+      /* .col-meta.collapsed .meta-toggle {
+        margin-bottom: 0;
+      } */
     }
   </style>
 </head>
@@ -366,7 +435,8 @@
 
     <div class="columns">
       <!-- ===== Workout metadata ===== -->
-      <div class="col-meta">
+      <div class="col-meta collapsed">
+        <button class="meta-toggle" onclick="toggleMeta()">▶ Show Workout Info</button>
         <div class="card">
           <h2>Workout Info</h2>
           <label>Name
@@ -858,6 +928,17 @@
       // Enable/disable remove button based on selection
       document.getElementById('btnRemove').disabled = (selectedSegIdx == null);
     }
+
+    /** Toggle workout metadata panel (mobile) */
+    function toggleMeta() {
+      const col = document.querySelector('.col-meta');
+      const btn = document.querySelector('.meta-toggle');
+      col.classList.toggle('collapsed');
+      btn.textContent = col.classList.contains('collapsed')
+        ? '▶ Show Workout Info'
+        : '▼ Hide Workout Info';
+    }
+
 
     // ============================================================
     //  ACTIONS — user interactions with segments
