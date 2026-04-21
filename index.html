@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
+%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E
+%3Crect width='64' height='64' rx='12' fill='%23cacaca'/%3E
+%3Cpolygon points='8,52 8,38 20,28 20,52' fill='%232ecc71' opacity='0.9'/%3E
+%3Cpolygon points='20,52 20,20 36,12 36,52' fill='%23f1c40f' opacity='0.9'/%3E
+%3Cpolygon points='36,52 36,16 48,24 48,52' fill='%23e74c3c' opacity='0.9'/%3E
+%3Cpolygon points='48,52 48,32 58,40 58,52' fill='%232ecc71' opacity='0.9'/%3E
+%3C/svg%3E">
+  <title>Simple ZWO Workout Editor</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --border: #ddd;
+      --accent: #4a90d9;
+      --highlight: #e94560;
+      --text: #222;
+      --text-muted: #777;
+      --zone1: #b0b0b0;
+      --zone2: #4a90d9;
+      --zone3: #2ecc71;
+      --zone4: #f1c40f;
+      --zone5: #e67e22;
+      --zone6: #e74c3c;
+      --zone7: #8e44ad;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1rem;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent);
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ---- Chart ---- */
+    .chart-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+
+    #chart {
+      width: 100%;
+      min-height: 200px;
+      display: block;
+    }
+
+    /* ---- Layout ---- */
+    .columns {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .col-meta {
+      flex: 0 0 280px;
+    }
+
+    .col-segments {
+      flex: 1 1 500px;
+    }
+
+    /* ---- Forms ---- */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.4rem 0.5rem;
+      background: #fff;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    /* ---- Segment list (scrollable) ---- */
+    .col-segments .card {
+      max-height: calc(100vh - 500px);
+      overflow-y: auto;
+    }
+
+    .seg-item {
+      background: #f9f9fb;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 0.4rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      transition: outline 0.15s, background 0.15s;
+      outline: 2px solid transparent;
+      cursor: pointer;
+    }
+
+    .seg-item.active {
+      outline: 2px solid var(--highlight);
+      background: #fff0f2;
+    }
+
+    .seg-item .field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .seg-item .field label {
+      margin-top: 0;
+      font-size: 0.7rem;
+    }
+
+    .seg-item .field input,
+    .seg-item .field select {
+      width: 100px;
+      font-size: 0.8rem;
+      padding: 0.25rem;
+    }
+
+    .seg-item .field.narrow input,
+    .seg-item .field.narrow select {
+      width: 75px;
+    }
+
+    .seg-item .field.type-field select {
+      width: 130px;
+    }
+
+    .seg-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.3rem;
+    }
+
+    /* ---- Buttons ---- */
+    button {
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #fff;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: #3670b0;
+    }
+
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-danger {
+      background: #fff;
+      color: #c0392b;
+      border-color: #e0a0a0;
+    }
+
+    .btn-danger:hover {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+
+    /* ---- Summary ---- */
+    .summary {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .summary span {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* ---- Header row ---- */
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ---- Modal ---- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal h2 {
+      margin-bottom: 0.8rem;
+    }
+
+    .modal p {
+      margin-bottom: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .modal ul {
+      margin: 0.4rem 0 0.8rem 1.2rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .modal-close {
+      margin-top: 1rem;
+      width: 100%;
+    }
+
+    .btn-help {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      padding: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      background: transparent;
+      line-height: 1;
+    }
+
+    .btn-help:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+
+    @media (max-width: 700px) {
+      .columns {
+        flex-direction: column;
+      }
+
+      .col-meta {
+        flex: 1 1 auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="header-row">
+      <h1>🚴 Simple ZWO Workout Editor</h1>
+      <button class="btn-help" onclick="toggleHelp()" title="About">?</button>
+    </div>
+
+    <!-- ===== Power chart ===== -->
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 800 200" preserveAspectRatio="none"></svg>
+    </div>
+
+    <!-- ===== Summary line ===== -->
+    <div class="summary" id="summary"></div>
+
+    <!-- ===== Toolbar ===== -->
+    <div class="toolbar">
+      <button onclick="newWorkout()">&#128196; New</button>
+      <button onclick="exportZwo()">💾 Export .zwo</button>
+      <button onclick="document.getElementById('fileInput').click()">📂 Import .zwo</button>
+      <input type="file" id="fileInput" accept=".zwo,.xml" onchange="importZwo(event)">
+      <button onclick="loadExample()">📋 Load Example</button>
+      <button class="btn-primary" onclick="addSegment()">+ Segment</button>
+      <button class="btn-danger" id="btnRemove" onclick="removeSelected()" disabled>- Segment</button>
+    </div>
+
+    <div class="columns">
+      <!-- ===== Workout metadata ===== -->
+      <div class="col-meta">
+        <div class="card">
+          <h2>Workout Info</h2>
+          <label>Name
+            <input id="wName" value="My Workout" oninput="update()">
+          </label>
+          <label>Author
+            <input id="wAuthor" value="" oninput="update()">
+          </label>
+          <label>Description
+            <textarea id="wDesc" oninput="update()"></textarea>
+          </label>
+          <label>Sport
+            <select id="wSport" onchange="update()">
+              <option value="bike">Bike</option>
+              <option value="run">Run</option>
+            </select>
+          </label>
+          <label>Tags (comma-separated)
+            <input id="wTags" placeholder="Interval, VO2max" oninput="update()">
+          </label>
+        </div>
+      </div>
+
+      <!-- ===== Segment list ===== -->
+      <div class="col-segments">
+        <div class="card">
+          <h2>Segments</h2>
+          <div id="segList"></div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== Help modal ===== -->
+    <div class="modal-overlay" id="helpModal" onclick="if(event.target===this)toggleHelp()">
+      <div class="modal">
+        <h2>About Simple ZWO Workout Editor</h2>
+        <p>A simple browser-based editor for creating and editing Zwift workout files (.zwo).</p>
+        <ul>
+          <li>Click <strong>+ Segment</strong> to add workout blocks (inserted after the selected segment)</li>
+          <li>Click on a chart block or segment row to select it</li>
+          <li>Use <strong>Export .zwo</strong> to download your workout for Zwift</li>
+          <li>Use <strong>Import .zwo</strong> to load and edit existing workouts</li>
+          <li>Power values are in <strong>% of FTP</strong></li>
+        </ul>
+        <p>Supported segment types: Warmup, Cooldown, SteadyState, Ramp, IntervalsT, FreeRide, MaxEffort.</p>
+        <p style="font-size:0.8rem;color:#aaa;">Built with vanilla JavaScript. No data is sent anywhere — everything
+          runs locally in your browser.</p>
+        <p style="font-size:0.8rem;text-align:center;color:#aaa;">
+          <a href="https://github.com/YOUR_USERNAME/zwo-editor" style="color:var(--accent);">GitHub</a>
+          &middot; MIT License
+        </p>
+        <button class="modal-close" onclick="toggleHelp()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    //  MODEL — data structures for workout and segments
+    // ============================================================
+
+    /**
+     * Supported segment types and their editable fields.
+     * Used to dynamically render the correct input controls.
+     */
+    const SegTypes = {
+      Warmup: { label: 'Warmup', fields: ['duration', 'powerLow', 'powerHigh', 'cadence'] },
+      SteadyState: { label: 'SteadyState', fields: ['duration', 'power', 'cadence'] },
+      IntervalsT: { label: 'IntervalsT', fields: ['repeat', 'onDuration', 'offDuration', 'onPower', 'offPower', 'cadence'] },
+      Ramp: { label: 'Ramp', fields: ['duration', 'powerLow', 'powerHigh', 'cadence'] },
+      FreeRide: { label: 'FreeRide', fields: ['duration', 'flatRoad'] },
+      MaxEffort: { label: 'MaxEffort', fields: ['duration'] },
+      Cooldown: { label: 'Cooldown', fields: ['duration', 'powerLow', 'powerHigh', 'cadence'] },
+    };
+
+    /**
+     * Field definitions: label, type, default value, and constraints.
+     * Power fields use percentage display (e.g. 75 = 75% FTP)
+     * but are stored as decimals internally (0.75).
+     */
+    const FieldDefs = {
+      duration: { label: 'Duration (s)', type: 'number', default: 300, min: 1, step: 1, isPower: false },
+      power: { label: 'Power %', type: 'number', default: 75, min: 10, max: 300, step: 5, isPower: true },
+      powerLow: { label: 'Power #1 %', type: 'number', default: 25, min: 10, max: 300, step: 5, isPower: true },
+      powerHigh: { label: 'Power #2 %', type: 'number', default: 75, min: 10, max: 300, step: 5, isPower: true },
+      cadence: { label: 'Cadence', type: 'number', default: null, min: 30, max: 150, step: 1, isPower: false },
+      repeat: { label: 'Repeat', type: 'number', default: 5, min: 1, max: 99, step: 1, isPower: false },
+      onDuration: { label: 'On (s)', type: 'number', default: 60, min: 1, step: 1, isPower: false },
+      offDuration: { label: 'Off (s)', type: 'number', default: 120, min: 1, step: 1, isPower: false },
+      onPower: { label: 'On Power %', type: 'number', default: 120, min: 10, max: 300, step: 5, isPower: true },
+      offPower: { label: 'Off Power %', type: 'number', default: 55, min: 10, max: 300, step: 5, isPower: true },
+      flatRoad: { label: 'Flat Road', type: 'checkbox', default: false, isPower: false },
+    };
+
+    /** Currently active workout */
+    let workout = {
+      name: 'My Workout', author: '', description: '',
+      sportType: 'bike', tags: [], segments: [],
+    };
+
+    /** Index of the currently selected segment (null = none) */
+    let selectedSegIdx = null;
+
+    /**
+     * Create a segment with defaults for the given type.
+     * Power values are stored as decimals (0.75 = 75% FTP).
+     * Overrides let you set specific values (e.g. from parsed ZWO).
+     */
+    function createSegment(type, overrides = {}) {
+      const seg = { type };
+      for (const f of SegTypes[type].fields) {
+        let val = overrides[f] !== undefined ? overrides[f] : FieldDefs[f].default;
+        // Convert percentage defaults to decimal for power fields
+        if (FieldDefs[f].isPower && val != null && overrides[f] === undefined) {
+          val = val / 100;
+        }
+        seg[f] = val;
+      }
+      // Cooldown defaults: ramp down (high → low)
+      if (type === 'Cooldown' && overrides.powerLow === undefined && overrides.powerHigh === undefined) {
+        seg.powerLow = 0.75;
+        seg.powerHigh = 0.25;
+      }
+      return seg;
+    }
+
+    // ============================================================
+    //  SERIALIZER — converts model to ZWO XML
+    // ============================================================
+
+    /** Escape special XML characters */
+    function esc(s) {
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /** Build optional XML attribute string (omitted if value is null) */
+    function optAttr(name, val) {
+      return val != null ? ` ${name}="${val}"` : '';
+    }
+
+    /** Convert a single segment to its XML representation */
+    function segToXml(seg) {
+      switch (seg.type) {
+        case 'Warmup': case 'Cooldown': case 'Ramp':
+          return `<${seg.type} Duration="${seg.duration}" PowerLow="${seg.powerLow}" PowerHigh="${seg.powerHigh}"${optAttr('Cadence', seg.cadence)}/>`;
+        case 'SteadyState':
+          return `<SteadyState Duration="${seg.duration}" Power="${seg.power}"${optAttr('Cadence', seg.cadence)}/>`;
+        case 'IntervalsT':
+          return `<IntervalsT Repeat="${seg.repeat}" OnDuration="${seg.onDuration}" OffDuration="${seg.offDuration}" OnPower="${seg.onPower}" OffPower="${seg.offPower}"${optAttr('Cadence', seg.cadence)}/>`;
+        case 'FreeRide':
+          return `<FreeRide Duration="${seg.duration}"${seg.flatRoad ? ' FlatRoad="1"' : ''}/>`;
+        case 'MaxEffort':
+          return `<MaxEffort Duration="${seg.duration}"/>`;
+      }
+    }
+
+    /** Serialize the full workout to ZWO XML string */
+    function workoutToZwo(w) {
+      const L = [];
+      L.push('<workout_file>');
+      L.push(`  <author>${esc(w.author)}</author>`);
+      L.push(`  <name>${esc(w.name)}</name>`);
+      L.push(`  <description>${esc(w.description)}</description>`);
+      L.push(`  <sportType>${w.sportType}</sportType>`);
+      if (w.tags.length) {
+        L.push('  <tags>');
+        w.tags.forEach(t => L.push(`    <tag name="${esc(t)}"/>`));
+        L.push('  </tags>');
+      }
+      L.push('  <workout>');
+      w.segments.forEach(s => L.push('    ' + segToXml(s)));
+      L.push('  </workout>');
+      L.push('</workout_file>');
+      return L.join('\n');
+    }
+
+    // ============================================================
+    //  PARSER — converts ZWO XML back to model
+    // ============================================================
+
+    /** Extract text content from a child element by selector */
+    function textContent(parent, selector) {
+      const el = parent.querySelector(selector);
+      return el ? el.textContent.trim() : '';
+    }
+
+    /** Parse a single XML element into a segment object */
+    function parseSegEl(el) {
+      const tag = el.tagName;
+      if (!SegTypes[tag]) return null;
+
+      const f = (a) => el.hasAttribute(a) ? parseFloat(el.getAttribute(a)) : null;
+      const i = (a) => el.hasAttribute(a) ? parseInt(el.getAttribute(a), 10) : null;
+
+      switch (tag) {
+        case 'Warmup': case 'Cooldown': case 'Ramp':
+          return createSegment(tag, {
+            duration: i('Duration'), powerLow: f('PowerLow'),
+            powerHigh: f('PowerHigh'), cadence: i('Cadence'),
+          });
+        case 'SteadyState':
+          return createSegment(tag, {
+            duration: i('Duration'), power: f('Power'), cadence: i('Cadence'),
+          });
+        case 'IntervalsT':
+          return createSegment(tag, {
+            repeat: i('Repeat'), onDuration: i('OnDuration'),
+            offDuration: i('OffDuration'), onPower: f('OnPower'),
+            offPower: f('OffPower'), cadence: i('Cadence'),
+          });
+        case 'FreeRide':
+          return createSegment(tag, {
+            duration: i('Duration'), flatRoad: el.getAttribute('FlatRoad') === '1',
+          });
+        case 'MaxEffort':
+          return createSegment(tag, { duration: i('Duration') });
+      }
+    }
+
+    /** Parse a complete ZWO XML string into a workout object */
+    function parseZwo(xml) {
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const root = doc.querySelector('workout_file');
+      if (!root) throw new Error('No <workout_file> element found');
+
+      const w = {
+        name: textContent(root, 'name'),
+        author: textContent(root, 'author'),
+        description: textContent(root, 'description'),
+        sportType: textContent(root, 'sportType') || 'bike',
+        tags: [],
+        segments: [],
+      };
+
+      root.querySelectorAll('tags > tag').forEach(t => {
+        w.tags.push(t.getAttribute('name') || '');
+      });
+
+      const wEl = root.querySelector('workout');
+      if (wEl) {
+        for (const ch of wEl.children) {
+          const s = parseSegEl(ch);
+          if (s) w.segments.push(s);
+        }
+      }
+      return w;
+    }
+
+    // ============================================================
+    //  CHART — SVG power profile visualization
+    // ============================================================
+
+    /** Map a power value (decimal, e.g. 0.75) to a training zone color */
+    function zoneColor(pct) {
+      if (pct < 0.56) return 'var(--zone1)';
+      if (pct < 0.76) return 'var(--zone2)';
+      if (pct < 0.91) return 'var(--zone3)';
+      if (pct < 1.06) return 'var(--zone4)';
+      if (pct < 1.19) return 'var(--zone5)';
+      if (pct < 1.50) return 'var(--zone6)';
+      return 'var(--zone7)';
+    }
+
+    /**
+     * Expand a segment into one or more visual blocks.
+     * Each block has { duration, powerStart, powerEnd, freeride }.
+     * IntervalsT produces multiple on/off blocks.
+     * Cooldown reverses power direction (PowerHigh → PowerLow).
+     */
+    function segmentBlocks(seg) {
+      switch (seg.type) {
+        case 'Warmup': case 'Ramp':
+          return [{ duration: seg.duration, powerStart: seg.powerLow, powerEnd: seg.powerHigh }];
+        case 'Cooldown':
+          return [{ duration: seg.duration, powerStart: seg.powerLow, powerEnd: seg.powerHigh }];
+        case 'SteadyState':
+          return [{ duration: seg.duration, powerStart: seg.power, powerEnd: seg.power }];
+        case 'IntervalsT': {
+          const blocks = [];
+          for (let i = 0; i < (seg.repeat || 1); i++) {
+            blocks.push({ duration: seg.onDuration, powerStart: seg.onPower, powerEnd: seg.onPower });
+            blocks.push({ duration: seg.offDuration, powerStart: seg.offPower, powerEnd: seg.offPower });
+          }
+          return blocks;
+        }
+        case 'FreeRide':
+          return [{ duration: seg.duration, powerStart: 0.4, powerEnd: 0.4, freeride: true }];
+        case 'MaxEffort':
+          return [{ duration: seg.duration, powerStart: 1.5, powerEnd: 1.5 }];
+        default:
+          return [];
+      }
+    }
+
+    /** Render the full SVG power chart from the current workout */
+    function renderChart() {
+      const svg = document.getElementById('chart');
+
+      // Build block array with segment index for click mapping
+      const blocks = [];
+      workout.segments.forEach((seg, segIdx) => {
+        segmentBlocks(seg).forEach(b => blocks.push({ ...b, segIdx }));
+      });
+
+      const totalDur = blocks.reduce((s, b) => s + b.duration, 0) || 1;
+      const maxPwr = Math.max(1.5, ...blocks.map(b => Math.max(b.powerStart, b.powerEnd)));
+
+      const W = 800, H = 200, PAD_B = 20, PAD_T = 5;
+      const chartH = H - PAD_B - PAD_T;
+
+      let defs = '<defs>';
+      let html = '';
+
+      // Horizontal zone reference lines
+      [0.55, 0.75, 0.90, 1.05, 1.18].forEach(z => {
+        const y = PAD_T + chartH - (z / maxPwr) * chartH;
+        if (y > PAD_T && y < H - PAD_B) {
+          html += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#00000010" stroke-dasharray="4,4"/>`;
+          html += `<text x="3" y="${y - 2}" fill="#aaa" font-size="9">${Math.round(z * 100)}%</text>`;
+        }
+      });
+
+      // Time axis baseline
+      html += `<line x1="0" y1="${H - PAD_B}" x2="${W}" y2="${H - PAD_B}" stroke="#ccc"/>`;
+
+      let x = 0;
+      blocks.forEach((b, i) => {
+        const w = (b.duration / totalDur) * W;
+        const y1 = PAD_T + chartH - (b.powerStart / maxPwr) * chartH;
+        const y2 = PAD_T + chartH - (b.powerEnd / maxPwr) * chartH;
+        const bottom = H - PAD_B;
+        const isRamp = Math.abs(b.powerStart - b.powerEnd) > 0.01;
+        const dimmed = selectedSegIdx != null && b.segIdx !== selectedSegIdx;
+
+        // Clickable group per block with optional dimming
+        html += `<g class="chart-block" data-seg="${b.segIdx}" style="cursor:pointer;opacity:${dimmed ? 0.3 : 1}" onclick="selectSegment(${b.segIdx})">`;
+
+        if (b.freeride) {
+          // FreeRide: light gray low block with dashed outline
+          const frY = PAD_T + chartH - (0.4 / maxPwr) * chartH;
+          html += `<rect x="${x}" y="${frY}" width="${w}" height="${bottom - frY}" fill="#ccc" opacity="0.35"/>`;
+          html += `<rect x="${x}" y="${frY}" width="${w}" height="${bottom - frY}" fill="none" stroke="#bbb" stroke-width="1" stroke-dasharray="4,2"/>`;
+          if (w > 30) {
+            html += `<text x="${x + w / 2}" y="${frY - 5}" fill="#999" font-size="9" text-anchor="middle">Free</text>`;
+          }
+        } else if (isRamp) {
+          // Ramp: gradient fill from start zone color to end zone color
+          const gradId = `grad-${i}`;
+          defs += `<linearGradient id="${gradId}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${zoneColor(b.powerStart)}"/>
+        <stop offset="100%" stop-color="${zoneColor(b.powerEnd)}"/>
+      </linearGradient>`;
+          html += `<polygon points="${x},${bottom} ${x},${y1} ${x + w},${y2} ${x + w},${bottom}" fill="url(#${gradId})" opacity="0.85"/>`;
+        } else {
+          // Steady block: solid zone color
+          html += `<polygon points="${x},${bottom} ${x},${y1} ${x + w},${y2} ${x + w},${bottom}" fill="${zoneColor(b.powerStart)}" opacity="0.85"/>`;
+        }
+
+        // Selection highlight overlay
+        if (b.segIdx === selectedSegIdx) {
+          html += `<rect x="${x}" y="${PAD_T}" width="${w}" height="${chartH}" fill="${'var(--highlight)'}" opacity="0.15"/>`;
+          html += `<line x1="${x}" y1="${PAD_T}" x2="${x}" y2="${bottom}" stroke="var(--highlight)" stroke-width="1.5"/>`;
+          html += `<line x1="${x + w}" y1="${PAD_T}" x2="${x + w}" y2="${bottom}" stroke="var(--highlight)" stroke-width="1.5"/>`;
+        }
+
+        // Duration label below block
+        if (w > 30) {
+          const dur = b.duration >= 60
+            ? Math.floor(b.duration / 60) + ':' + String(b.duration % 60).padStart(2, '0')
+            : b.duration + 's';
+          html += `<text x="${x + w / 2}" y="${H - 5}" fill="#999" font-size="8" text-anchor="middle">${dur}</text>`;
+        }
+
+        html += '</g>';
+        x += w;
+      });
+
+      defs += '</defs>';
+      svg.innerHTML = defs + html;
+    }
+
+    // ============================================================
+    //  UI — segment list rendering and interaction
+    // ============================================================
+
+    /** Render all segments as editable rows */
+    function renderSegments() {
+      const list = document.getElementById('segList');
+
+      if (!workout.segments.length) {
+        list.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">No segments yet. Click "+ Segment" to start.</p>';
+        return;
+      }
+
+      list.innerHTML = workout.segments.map((seg, idx) => {
+        const fields = SegTypes[seg.type].fields;
+        let html = `<div class="seg-item ${idx === selectedSegIdx ? 'active' : ''}" data-idx="${idx}">`;
+
+        // Segment type selector
+        html += `<div class="field type-field"><label>Type</label>
+      <select onchange="changeType(${idx}, this.value)">
+        ${Object.keys(SegTypes).map(t =>
+          `<option value="${t}" ${t === seg.type ? 'selected' : ''}>${SegTypes[t].label}</option>`
+        ).join('')}
+      </select></div>`;
+
+        // Dynamic input fields based on segment type
+        fields.forEach(f => {
+          const fd = FieldDefs[f];
+          if (fd.type === 'checkbox') {
+            html += `<div class="field narrow"><label>${fd.label}</label>
+          <input type="checkbox" ${seg[f] ? 'checked' : ''}
+           onchange="setField(${idx},'${f}',this.checked)" style="width:auto"></div>`;
+          } else {
+            // Display power values as percentages (internal 0.75 → display 75)
+            const displayVal = (fd.isPower && seg[f] != null) ? Math.round(seg[f] * 100) : (seg[f] ?? '');
+            html += `<div class="field narrow"><label>${fd.label}</label>
+          <input type="number" value="${displayVal}"
+           step="${fd.step || 'any'}"
+           ${fd.min != null ? 'min="' + fd.min + '"' : ''}
+           ${fd.max != null ? 'max="' + fd.max + '"' : ''}
+           onchange="setField(${idx},'${f}',this.value)"
+           placeholder="${fd.default ?? ''}"></div>`;
+          }
+        });
+
+        // Action buttons: move, duplicate, delete
+        html += `<div class="seg-actions">
+      <button class="btn-small" onclick="moveSegment(${idx},-1)" ${idx === 0 ? 'disabled' : ''} title="Move up">&#9650;</button>
+      <button class="btn-small" onclick="moveSegment(${idx},1)" ${idx === workout.segments.length - 1 ? 'disabled' : ''} title="Move down">&#9660;</button>
+      <button class="btn-small" onclick="dupSegment(${idx})" title="Duplicate">&#10697;</button>
+      <button class="btn-small btn-danger" onclick="removeSegment(${idx})" title="Delete">&#10005;</button>
+    </div>`;
+
+        html += '</div>';
+        return html;
+      }).join('');
+    }
+
+    /** Update summary line showing segment count and total duration */
+    function renderSummary() {
+      const blocks = workout.segments.flatMap(s => segmentBlocks(s));
+      const totalSec = blocks.reduce((s, b) => s + b.duration, 0);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      document.getElementById('summary').innerHTML =
+        `Segments: <span>${workout.segments.length}</span> &middot; ` +
+        `Total duration: <span>${mins}:${String(secs).padStart(2, '0')}</span> min &middot; ` +
+        `Blocks: <span>${blocks.length}</span>`;
+    }
+
+    /** Read metadata fields from the UI into the workout model */
+    function syncMetaFromUI() {
+      workout.name = document.getElementById('wName').value;
+      workout.author = document.getElementById('wAuthor').value;
+      workout.description = document.getElementById('wDesc').value;
+      workout.sportType = document.getElementById('wSport').value;
+      workout.tags = document.getElementById('wTags').value
+        .split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    /** Write workout metadata into the UI form fields */
+    function syncMetaToUI() {
+      document.getElementById('wName').value = workout.name;
+      document.getElementById('wAuthor').value = workout.author;
+      document.getElementById('wDesc').value = workout.description;
+      document.getElementById('wSport').value = workout.sportType;
+      document.getElementById('wTags').value = workout.tags.join(', ');
+    }
+
+    /** Remove the currently selected segment */
+    function removeSelected() {
+      if (selectedSegIdx == null) return;
+      removeSegment(selectedSegIdx);
+      selectedSegIdx = null;
+      update();
+    }
+
+    /** Central update: sync model, re-render everything */
+    function update() {
+      syncMetaFromUI();
+      // Clamp selection if segments were removed
+      if (selectedSegIdx != null && selectedSegIdx >= workout.segments.length) {
+        selectedSegIdx = null;
+      }
+      renderSegments();
+      renderChart();
+      renderSummary();
+      // Enable/disable remove button based on selection
+      document.getElementById('btnRemove').disabled = (selectedSegIdx == null);
+    }
+
+    // ============================================================
+    //  ACTIONS — user interactions with segments
+    // ============================================================
+
+    /** Add a new segment after the selected one, or at the end if none selected */
+    function addSegment(type = 'SteadyState') {
+      const insertAt = selectedSegIdx != null ? selectedSegIdx + 1 : workout.segments.length;
+      workout.segments.splice(insertAt, 0, createSegment(type));
+      selectedSegIdx = insertAt;
+      update();
+    }
+
+    /** Remove segment at index */
+    function removeSegment(idx) {
+      workout.segments.splice(idx, 1);
+      update();
+    }
+
+    /** Duplicate segment at index (inserted after it) */
+    function dupSegment(idx) {
+      workout.segments.splice(idx + 1, 0, { ...workout.segments[idx] });
+      update();
+    }
+
+    /** Swap segment at index with its neighbour (dir: -1 = up, +1 = down) */
+    function moveSegment(idx, dir) {
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= workout.segments.length) return;
+      const tmp = workout.segments[idx];
+      workout.segments[idx] = workout.segments[newIdx];
+      workout.segments[newIdx] = tmp;
+      // Move selection along with the segment
+      if (selectedSegIdx === idx) selectedSegIdx = newIdx;
+      else if (selectedSegIdx === newIdx) selectedSegIdx = idx;
+      update();
+    }
+
+    /** Change the type of a segment, preserving compatible field values */
+    function changeType(idx, newType) {
+      const old = workout.segments[idx];
+      workout.segments[idx] = createSegment(newType, old);
+      selectedSegIdx = idx;
+      update();
+    }
+
+    /**
+     * Update a single field on a segment.
+     * Power fields are converted from percentage input (75) to decimal (0.75).
+     * Selecting a field implicitly selects the segment.
+     */
+    function setField(idx, field, value) {
+      const fd = FieldDefs[field];
+      if (fd.type === 'checkbox') {
+        workout.segments[idx][field] = !!value;
+      } else {
+        let v = value === '' ? null : parseFloat(value);
+        // Convert percentage display value to internal decimal
+        if (fd.isPower && v != null) {
+          v = v / 100;
+        }
+        workout.segments[idx][field] = v;
+      }
+      selectedSegIdx = idx;
+      update();
+    }
+
+    /**
+     * Toggle segment selection (click on chart or segment background).
+     * Clicking the same segment again deselects it.
+     */
+    function selectSegment(idx) {
+      selectedSegIdx = (selectedSegIdx === idx) ? null : idx;
+      update();
+    }
+
+    /**
+     * Select a segment without toggle (used by focusin on inputs).
+     * Only triggers update if selection actually changes.
+     */
+    function focusSegment(idx) {
+      if (selectedSegIdx !== idx) {
+        selectedSegIdx = idx;
+        update();
+      }
+    }
+
+    // ============================================================
+    //  NEW — file 
+    // ============================================================
+    /** Reset the editor to a blank workout */
+    function newWorkout() {
+      if (!confirm('Discard all changes and start a new workout?')) return;
+      workout = {
+        name: 'My Workout', author: '', description: '',
+        sportType: 'bike', tags: [], segments: [],
+      };
+      selectedSegIdx = null;
+      syncMetaToUI();
+      update();
+    }
+
+    // ============================================================
+    //  EXPORT / IMPORT — file handling
+    // ============================================================
+
+    /** Download the current workout as a .zwo file */
+    function exportZwo() {
+      syncMetaFromUI();
+      const xml = workoutToZwo(workout);
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (workout.name || 'workout').replace(/[^a-zA-Z0-9_-]/g, '_') + '.zwo';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    /** Import a .zwo file via file input and load it into the editor */
+    function importZwo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          workout = parseZwo(e.target.result);
+          selectedSegIdx = null;
+          syncMetaToUI();
+          update();
+        } catch (err) {
+          alert('Import error: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // ============================================================
+    //  EXAMPLE — preloaded demo workout
+    // ============================================================
+
+    /** Load a sample sweet spot interval workout */
+    function loadExample() {
+      workout = {
+        name: 'Sweet Spot Intervals',
+        author: 'arakel2',
+        description: 'Warmup, 4x8min Sweet Spot with 4min recovery, Cooldown',
+        sportType: 'bike',
+        tags: ['Sweet Spot', 'Interval'],
+        segments: [
+          createSegment('Warmup', { duration: 600, powerLow: 0.40, powerHigh: 0.70 }),
+          createSegment('SteadyState', { duration: 300, power: 0.70, cadence: 85 }),
+          createSegment('IntervalsT', { repeat: 4, onDuration: 480, offDuration: 240, onPower: 0.90, offPower: 0.55 }),
+          createSegment('SteadyState', { duration: 300, power: 0.55, cadence: 80 }),
+          createSegment('Cooldown', { duration: 600, powerLow: 0.55, powerHigh: 0.35 }),
+        ],
+      };
+      selectedSegIdx = null;
+      syncMetaToUI();
+      update();
+    }
+
+    /** Toggle the help/about modal */
+    function toggleHelp() {
+      document.getElementById('helpModal').classList.toggle('visible');
+    }
+
+    // ============================================================
+    //  INIT — event delegation and first render
+    // ============================================================
+
+    // Select segment when any input/select inside it receives focus
+    document.getElementById('segList').addEventListener('focusin', (e) => {
+      const segItem = e.target.closest('.seg-item');
+      if (segItem) {
+        focusSegment(parseInt(segItem.dataset.idx));
+      }
+    });
+
+    // Select/toggle segment when clicking on its background (not on inputs/buttons)
+    document.getElementById('segList').addEventListener('click', (e) => {
+      if (e.target.closest('input, select, button')) return;
+      const segItem = e.target.closest('.seg-item');
+      if (segItem) {
+        selectSegment(parseInt(segItem.dataset.idx));
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.getElementById('helpModal').classList.remove('visible');
+      }
+    });
+
+
+    // Initial render
+    update();
+  </script>
+</body>
+
+</html>
