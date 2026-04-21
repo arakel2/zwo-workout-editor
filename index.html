@@ -433,6 +433,8 @@
       <button onclick="document.getElementById('fileInput').click()">📂 Import .zwo</button>
       <input type="file" id="fileInput" accept=".zwo,.xml" onchange="importZwo(event)">
       <button onclick="loadExample()">📋 Load Example</button>
+      <button id="btnUndo" onclick="undo()" disabled title="Undo (Ctrl+Z)">↩ Undo</button>
+      <button id="btnRedo" onclick="redo()" disabled title="Redo (Ctrl+Y)">↪ Redo</button>
       <button class="btn-primary" onclick="addSegment()">+ Segment</button>
       <button class="btn-danger" id="btnRemove" onclick="removeSelected()" disabled>- Segment</button>
     </div>
@@ -943,6 +945,59 @@
         : '▼ Hide Workout Info';
     }
 
+    // ============================================================
+    //  UNDO — state history
+    // ============================================================
+
+    const MAX_UNDO = 50;
+    const undoStack = [];
+    const redoStack = [];
+
+    /** Save current state to undo stack (call before every mutation) */
+    function pushState() {
+      syncMetaFromUI();
+      undoStack.push({
+        workout: JSON.stringify(workout),
+        selectedSegIdx
+      });
+      if (undoStack.length > MAX_UNDO) undoStack.shift();
+      redoStack.length = 0;
+      document.getElementById('btnUndo').disabled = false;
+      document.getElementById('btnRedo').disabled = true;
+    }
+
+    /** Restore previous state */
+    function undo() {
+      if (!undoStack.length) return;
+      syncMetaFromUI();
+      redoStack.push({
+        workout: JSON.stringify(workout),
+        selectedSegIdx
+      });
+      const state = undoStack.pop();
+      workout = JSON.parse(state.workout);
+      selectedSegIdx = state.selectedSegIdx;
+      syncMetaToUI();
+      update();
+      document.getElementById('btnUndo').disabled = undoStack.length === 0;
+      document.getElementById('btnRedo').disabled = false;
+    }
+
+    function redo() {
+      if (!redoStack.length) return;
+      undoStack.push({
+        workout: JSON.stringify(workout),
+        selectedSegIdx
+      });
+      const state = redoStack.pop();
+      workout = JSON.parse(state.workout);
+      selectedSegIdx = state.selectedSegIdx;
+      syncMetaToUI();
+      update();
+      document.getElementById('btnUndo').disabled = false;
+      document.getElementById('btnRedo').disabled = redoStack.length === 0;
+    }
+
 
     // ============================================================
     //  ACTIONS — user interactions with segments
@@ -950,6 +1005,7 @@
 
     /** Add a new segment after the selected one, or at the end if none selected */
     function addSegment(type = 'SteadyState') {
+      pushState();
       const insertAt = selectedSegIdx != null ? selectedSegIdx + 1 : workout.segments.length;
       workout.segments.splice(insertAt, 0, createSegment(type));
       selectedSegIdx = insertAt;
@@ -958,13 +1014,15 @@
 
     /** Remove segment at index */
     function removeSegment(idx) {
+      pushState();
       workout.segments.splice(idx, 1);
       update();
     }
 
     /** Duplicate segment at index (inserted after it) */
     function dupSegment(idx) {
-      workout.segments.splice(idx + 1, 0, { ...workout.segments[idx] });
+      pushState();
+      workout.segments.splice(idx + 1, 0, JSON.parse(JSON.stringify(workout.segments[idx])));
       update();
     }
 
@@ -972,6 +1030,7 @@
     function moveSegment(idx, dir) {
       const newIdx = idx + dir;
       if (newIdx < 0 || newIdx >= workout.segments.length) return;
+      pushState();
       const tmp = workout.segments[idx];
       workout.segments[idx] = workout.segments[newIdx];
       workout.segments[newIdx] = tmp;
@@ -983,6 +1042,7 @@
 
     /** Change the type of a segment, preserving compatible field values */
     function changeType(idx, newType) {
+      pushState();
       const old = workout.segments[idx];
       workout.segments[idx] = createSegment(newType, old);
       selectedSegIdx = idx;
@@ -1035,6 +1095,7 @@
     // ============================================================
     /** Reset the editor to a blank workout */
     function newWorkout() {
+      pushState();
       if (!confirm('Discard all changes and start a new workout?')) return;
       workout = {
         name: 'My Workout', author: '', description: '',
@@ -1058,7 +1119,8 @@
       a.href = URL.createObjectURL(blob);
       a.download = (workout.name || 'workout').replace(/[^a-zA-Z0-9_-]/g, '_') + '.zwo';
       a.click();
-      URL.revokeObjectURL(a.href);
+      // URL.revokeObjectURL(a.href);
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
 
     /** Import a .zwo file via file input and load it into the editor */
@@ -1068,6 +1130,7 @@
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
+          pushState();
           workout = parseZwo(e.target.result);
           selectedSegIdx = null;
           syncMetaToUI();
@@ -1086,6 +1149,7 @@
 
     /** Load a sample sweet spot interval workout */
     function loadExample() {
+      pushState();
       workout = {
         name: 'Sweet Spot Intervals',
         author: 'arakel2',
@@ -1120,6 +1184,9 @@
       if (segItem) {
         focusSegment(parseInt(segItem.dataset.idx));
       }
+      if (e.target.matches('input, select')) {
+        pushState();
+      }
     });
 
     // Select/toggle segment when clicking on its background (not on inputs/buttons)
@@ -1135,8 +1202,19 @@
       if (e.key === 'Escape') {
         document.getElementById('helpModal').classList.remove('visible');
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
     });
 
+    // Save state when user starts editing any field
+    document.querySelectorAll('.col-meta input, .col-meta textarea, .col-meta select')
+      .forEach(el => el.addEventListener('focus', pushState));
 
     // Initial render
     update();
