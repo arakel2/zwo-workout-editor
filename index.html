@@ -1,3 +1,12 @@
+<!--
+  ZWO Workout Editor V 1.1
+  Author: arakel2
+  GitHub: https://github.com/arakel2/zwo-workout-editor
+  License: MIT (https://opensource.org/licenses/MIT)
+  
+  Description: A simple, browser-based editor for creating and editing Zwift workout files (.zwo).
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,12 +23,18 @@
 %3C/svg%3E">
   <title>Simple ZWO Workout Editor</title>
   <style>
+    /* ============================================================
+     1. DESIGN TOKENS
+     ============================================================ */
     :root {
       --bg: #f4f5f7;
-      --surface: #ffffff;
+      --surface: #fff;
       --border: #ddd;
       --accent: #4a90d9;
+      --accent-hover: #3670b0;
       --highlight: #e94560;
+      --danger: #c0392b;
+      --danger-hover: #e74c3c;
       --text: #222;
       --text-muted: #777;
       --zone1: #b0b0b0;
@@ -32,7 +47,12 @@
       --radius: 6px;
     }
 
-    * {
+    /* ============================================================
+     2. RESET
+     ============================================================ */
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -44,6 +64,9 @@
       overflow: hidden;
     }
 
+    /* ============================================================
+     3. BASE TYPOGRAPHY & BODY
+     ============================================================ */
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       background: var(--bg);
@@ -54,25 +77,61 @@
 
     h1 {
       font-size: 1.4rem;
-      margin-bottom: 0.5rem;
     }
 
     h2 {
       font-size: 1.1rem;
-      margin-bottom: 0.5rem;
       color: var(--accent);
     }
 
+    /* ============================================================
+     4. APP SHELL — flex column, full viewport
+     ============================================================ */
     .app {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: calc(100vh - 2rem);
       max-width: 1200px;
       margin: 0 auto;
     }
 
-    /* ---- Chart ---- */
+    /* ============================================================
+     5. HEADER
+     ============================================================ */
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      margin-bottom: 0.5rem;
+    }
+
+    .btn-help {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      padding: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      background: transparent;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .btn-help:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    /* ============================================================
+     6. CHART
+     ============================================================ */
     .chart-wrap {
+      flex-shrink: 0;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -87,10 +146,99 @@
       display: block;
     }
 
-    /* ---- Layout ---- */
+    /* ============================================================
+     7. SUMMARY
+     ============================================================ */
+    .summary {
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .summary span {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ============================================================
+     8. TOOLBAR & BUTTONS
+     ============================================================ */
+    .toolbar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.8rem;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    /* -- Base button -- */
+    button {
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: var(--surface);
+      color: var(--text);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    /* -- Variants -- */
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: #e0a0a0;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--danger-hover);
+      color: #fff;
+      border-color: var(--danger-hover);
+    }
+
+    /* -- Button label toggle (default: full text visible) -- */
+    .btn-label-short {
+      display: none;
+    }
+
+    /* ============================================================
+     9. COLUMNS LAYOUT
+     ============================================================ */
     .columns {
       flex: 1;
       min-height: 0;
+      /* crucial: allow shrink below content size */
       display: flex;
       gap: 1rem;
     }
@@ -101,13 +249,40 @@
     }
 
     .col-segments {
-      flex: 1 1 500px;
+      flex: 1 1 0;
+      /* grow to fill, basis 0 for fair distribution */
       display: flex;
       flex-direction: column;
       min-height: 0;
     }
 
-    /* ---- Forms ---- */
+    /* ============================================================
+     10. CARDS
+     ============================================================ */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.8rem;
+    }
+
+    .card h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .col-meta .card {
+      margin-bottom: 0.5rem;
+    }
+
+    .col-segments .card {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* ============================================================
+     11. FORMS
+     ============================================================ */
     label {
       display: block;
       font-size: 0.8rem;
@@ -132,21 +307,9 @@
       min-height: 60px;
     }
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.8rem;
-      margin-bottom: 1.8rem;
-    }
-
-    /* ---- Segment list (scrollable) ---- */
-    .col-segments .card {
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
-    }
-
+    /* ============================================================
+     12. SEGMENT ITEMS
+     ============================================================ */
     .seg-item {
       background: #f9f9fb;
       border: 1px solid var(--border);
@@ -157,16 +320,17 @@
       gap: 0.5rem;
       align-items: center;
       flex-wrap: wrap;
-      transition: outline 0.15s, background 0.15s;
-      outline: 2px solid transparent;
       cursor: pointer;
+      outline: 2px solid transparent;
+      transition: outline 0.15s, background 0.15s;
     }
 
     .seg-item.active {
-      outline: 2px solid var(--highlight);
+      outline-color: var(--highlight);
       background: #fff0f2;
     }
 
+    /* -- Field columns inside a segment -- */
     .seg-item .field {
       display: flex;
       flex-direction: column;
@@ -193,88 +357,33 @@
       width: 130px;
     }
 
+    /* -- Action buttons (move, dup, delete) -- */
     .seg-actions {
       margin-left: auto;
       display: flex;
       gap: 0.3rem;
     }
 
-    /* ---- Buttons ---- */
-    button {
-      padding: 0.4rem 0.8rem;
+    /* ============================================================
+     13. META TOGGLE (hidden on desktop, visible ≤1100px)
+     ============================================================ */
+    .meta-toggle {
+      display: none;
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       cursor: pointer;
-      font-size: 0.85rem;
-      background: #fff;
-      color: var(--text);
-      transition: background 0.15s;
-    }
-
-    button:hover {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    .btn-primary:hover {
-      background: #3670b0;
-    }
-
-    .btn-small {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .btn-danger {
-      background: #fff;
-      color: #c0392b;
-      border-color: #e0a0a0;
-    }
-
-    .btn-danger:hover {
-      background: #e74c3c;
-      color: #fff;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-bottom: 0.8rem;
-    }
-
-    /* ---- Summary ---- */
-    .summary {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .summary span {
-      color: var(--text);
+      font-size: 0.9rem;
       font-weight: 600;
+      color: var(--accent);
+      text-align: center;
     }
 
-    #fileInput {
-      display: none;
-    }
-
-    /* ---- Header row ---- */
-    .header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    /* ---- Modal ---- */
+    /* ============================================================
+     14. MODAL
+     ============================================================ */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -322,13 +431,88 @@
       width: 100%;
     }
 
-    .btn-help {
+    /* ============================================================
+     15. RESPONSIVE — Shared: Mobile + Tablet (≤1100px)
+     ============================================================ */
+    @media (max-width: 1100px) {
+      .columns {
+        flex-direction: column;
+      }
+
+      .col-segments {
+        order: 1;
+        flex: 1 1 auto;
+      }
+
+      .col-meta {
+        order: 2;
+        flex: 0 0 auto;
+      }
+
+      .meta-toggle {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      .col-meta.collapsed .card {
+        display: none;
+      }
+    }
+
+    /* ============================================================
+     16. RESPONSIVE — Tablet (701–1100px)
+     ============================================================ */
+    @media (min-width: 701px) and (max-width: 1100px) {
+      body {
+        padding: 0.5rem 1rem;
+      }
+
+      .app {
+        height: calc(100vh - 1rem);
+      }
+
+      h1 {
+        font-size: 1.2rem;
+      }
+
+      .header-row {
+        margin-bottom: 0.3rem;
+      }
+
+      .chart-wrap {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        max-height: 30vh;
+      }
+
+      #chart {
+        min-height: 120px;
+      }
+
+      .summary {
+        margin-bottom: 0.3rem;
+      }
+
+      .toolbar {
+        gap: 0.3rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .toolbar button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+      }
+    }
+
+    /* ============================================================
+     17. RESPONSIVE — Mobile (≤700px)
+     ============================================================ */
+    /* ---- Toolbar help button (mobile only) ---- */
+    .btn-toolbar-help {
+      display: none;
       width: 32px;
       height: 32px;
       min-width: 32px;
-      /* prevent flex shrinking */
-      flex-shrink: 0;
-      /* don't let flexbox compress it */
       border-radius: 50%;
       padding: 0;
       font-size: 1rem;
@@ -336,31 +520,38 @@
       color: var(--accent);
       border: 2px solid var(--accent);
       background: transparent;
+      cursor: pointer;
       line-height: 1;
+      margin-left: auto;
+      /* schiebt den Button nach rechts */
     }
 
-    .btn-help:hover {
+    .btn-toolbar-help:hover {
       background: var(--accent);
       color: #fff;
     }
 
-
-    /* ---- Mobile toggle button ---- */
-    .meta-toggle {
-      display: none;
+    /* ---- Icon help table inside modal ---- */
+    .icon-help-table {
       width: 100%;
-      padding: 0.5rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--accent);
-      text-align: center;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
     }
 
-    /* ---- Mobile Layout ---- */
+    .icon-help-table td {
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .icon-help-table td:first-child {
+      width: 3rem;
+      text-align: center;
+      font-size: 1.1rem;
+      color: var(--text);
+    }
+
     @media (max-width: 700px) {
 
       html,
@@ -372,11 +563,6 @@
         height: auto;
       }
 
-      .columns {
-        flex-direction: column;
-      }
-
-      /* Segments after Chart, Meta later */
       .col-segments {
         order: 1;
         max-height: 50vh;
@@ -384,29 +570,57 @@
 
       .col-meta {
         order: 2;
-        flex: 1 1 auto;
       }
 
-      /* Height for segments on mobiles */
       .col-segments .card {
         max-height: 50vh;
         flex: none;
       }
 
-      /* Show Toggle-Button */
-      .meta-toggle {
-        display: block;
-        margin-bottom: 0.5rem;
-      }
-
-      /* Collapes Mechanism */
-      .col-meta.collapsed .card {
+      .btn-label {
         display: none;
       }
 
-      /* .col-meta.collapsed .meta-toggle {
-        margin-bottom: 0;
-      } */
+      .btn-label-full {
+        display: none;
+      }
+
+      .btn-label-short {
+        display: inline;
+      }
+
+      .btn-toolbar-help {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+
+    /* ============================================================
+     18. RESPONSIVE — Height-constrained (e.g. tablet + browser chrome)
+     ============================================================ */
+    @media (max-height: 600px) {
+      body {
+        padding: 0.5rem;
+      }
+
+      .chart-wrap {
+        padding: 0.5rem;
+        margin-bottom: 0.4rem;
+        max-height: 25vh;
+      }
+
+      #chart {
+        min-height: 100px;
+      }
+
+      .summary {
+        margin-bottom: 0.2rem;
+      }
+
+      .toolbar {
+        margin-bottom: 0.4rem;
+      }
     }
   </style>
 </head>
@@ -428,15 +642,20 @@
 
     <!-- ===== Toolbar ===== -->
     <div class="toolbar">
-      <button onclick="newWorkout()">&#128196; New</button>
-      <button onclick="exportZwo()">💾 Export .zwo</button>
-      <button onclick="document.getElementById('fileInput').click()">📂 Import .zwo</button>
-      <input type="file" id="fileInput" accept=".zwo,.xml" onchange="importZwo(event)">
-      <button onclick="loadExample()">📋 Load Example</button>
-      <button id="btnUndo" onclick="undo()" disabled title="Undo (Ctrl+Z)">↩ Undo</button>
-      <button id="btnRedo" onclick="redo()" disabled title="Redo (Ctrl+Y)">↪ Redo</button>
-      <button class="btn-primary" onclick="addSegment()">+ Segment</button>
-      <button class="btn-danger" id="btnRemove" onclick="removeSelected()" disabled>- Segment</button>
+      <button onclick="newWorkout()">📄 <span class="btn-label">New</span></button>
+      <button onclick="document.getElementById('fileInput').click()">📂 <span class="btn-label">Import
+          .zwo</span></button>
+      <button onclick="exportZwo()">💾 <span class="btn-label">Export .zwo</span></button>
+      <button onclick="loadExample()">📋 <span class="btn-label">Load Example</span></button>
+      <button id="btnUndo" onclick="undo()" disabled>↩ <span class="btn-label">Undo</span></button>
+      <button id="btnRedo" onclick="redo()" disabled>↪ <span class="btn-label">Redo</span></button>
+      <button class="btn-primary" onclick="addSegment()">+ <span class="btn-label-full">Segment</span><span
+          class="btn-label-short">Seg.</span></button>
+      <button id="btnRemove" class="btn-danger" onclick="removeSelected()" disabled>− <span
+          class="btn-label-full">Segment</span><span class="btn-label-short">Seg.</span></button>
+      <button class="btn-toolbar-help" onclick="document.getElementById('toolbarHelpModal').classList.add('visible')"
+        title="Button-Hilfe">?</button>
+      <input type="file" id="fileInput" accept=".zwo">
     </div>
 
     <div class="columns">
@@ -496,6 +715,48 @@
         <button class="modal-close" onclick="toggleHelp()">Close</button>
       </div>
     </div>
+
+    <div class="modal-overlay" id="toolbarHelpModal" onclick="if(event.target===this)this.classList.remove('visible')">
+      <div class="modal">
+        <h2>Toolbar Buttons</h2>
+        <table class="icon-help-table">
+          <tr>
+            <td>📄</td>
+            <td>New Workout</td>
+          </tr>
+          <tr>
+            <td>📂</td>
+            <td>import .zwo file</td>
+          </tr>
+          <tr>
+            <td>💾</td>
+            <td>export as .zwo file</td>
+          </tr>
+          <tr>
+            <td>📋</td>
+            <td>load example</td>
+          </tr>
+          <tr>
+            <td>↩</td>
+            <td>Undo</td>
+          </tr>
+          <tr>
+            <td>↪</td>
+            <td>Redo</td>
+          </tr>
+          <tr>
+            <td>+ Seg.</td>
+            <td>add segment</td>
+          </tr>
+          <tr>
+            <td>− Seg.</td>
+            <td>delete active segment</td>
+          </tr>
+        </table>
+        <button class="modal-close" onclick="this.closest('.modal-overlay').classList.remove('visible')">Close</button>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -1054,21 +1315,31 @@
      * Power fields are converted from percentage input (75) to decimal (0.75).
      * Selecting a field implicitly selects the segment.
      */
+    let _setFieldTimer = 0;
+    let _setFieldStatePushed = false;
+
     function setField(idx, field, value) {
+      // Ersten Aufruf einer Serie: State sichern
+      if (!_setFieldStatePushed) {
+        pushState();
+        _setFieldStatePushed = true;
+      }
+      // Debounce-Reset: nach 500ms Pause gilt nächster Aufruf als "neu"
+      clearTimeout(_setFieldTimer);
+      _setFieldTimer = setTimeout(() => { _setFieldStatePushed = false; }, 500);
+
       const fd = FieldDefs[field];
       if (fd.type === 'checkbox') {
         workout.segments[idx][field] = !!value;
       } else {
         let v = value === '' ? null : parseFloat(value);
-        // Convert percentage display value to internal decimal
-        if (fd.isPower && v != null) {
-          v = v / 100;
-        }
+        if (fd.isPower && v != null) v = v / 100;
         workout.segments[idx][field] = v;
       }
       selectedSegIdx = idx;
       update();
     }
+
 
     /**
      * Toggle segment selection (click on chart or segment background).
@@ -1086,7 +1357,12 @@
     function focusSegment(idx) {
       if (selectedSegIdx !== idx) {
         selectedSegIdx = idx;
-        update();
+        // Nur visuelles Update, KEIN renderSegments()
+        document.querySelectorAll('.seg-item').forEach((el, i) => {
+          el.classList.toggle('active', i === idx);
+        });
+        renderChart();  // Chart-Highlight aktualisieren
+        document.getElementById('btnRemove').disabled = (idx == null);
       }
     }
 
@@ -1183,9 +1459,6 @@
       const segItem = e.target.closest('.seg-item');
       if (segItem) {
         focusSegment(parseInt(segItem.dataset.idx));
-      }
-      if (e.target.matches('input, select')) {
-        pushState();
       }
     });
 
