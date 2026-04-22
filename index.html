@@ -645,6 +645,7 @@
       <button onclick="newWorkout()">📄 <span class="btn-label">New</span></button>
       <button onclick="document.getElementById('fileInput').click()">📂 <span class="btn-label">Import
           .zwo</span></button>
+      <input type="file" id="fileInput" accept=".zwo,.xml" onchange="importZwo(event)">
       <button onclick="exportZwo()">💾 <span class="btn-label">Export .zwo</span></button>
       <button onclick="loadExample()">📋 <span class="btn-label">Load Example</span></button>
       <button id="btnUndo" onclick="undo()" disabled>↩ <span class="btn-label">Undo</span></button>
@@ -655,7 +656,6 @@
           class="btn-label-full">Segment</span><span class="btn-label-short">Seg.</span></button>
       <button class="btn-toolbar-help" onclick="document.getElementById('toolbarHelpModal').classList.add('visible')"
         title="Button-Hilfe">?</button>
-      <input type="file" id="fileInput" accept=".zwo">
     </div>
 
     <div class="columns">
